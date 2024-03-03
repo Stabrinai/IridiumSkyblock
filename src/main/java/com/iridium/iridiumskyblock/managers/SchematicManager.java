@@ -113,17 +113,12 @@ public class SchematicManager {
         location.add(0, schematic.islandHeight, 0);
         File file = schematicFiles.getOrDefault(schematic.schematicID,
                 schematicFiles.values().stream().findFirst().orElse(null));
-        Bukkit.getScheduler().runTask(IridiumSkyblock.getInstance(), () -> {
+        Bukkit.getRegionScheduler().run(IridiumSkyblock.getInstance(), location, task -> {
             if (file == null) {
                 location.getBlock().setType(Material.BEDROCK);
                 IridiumSkyblock.getInstance().getLogger().warning("Could not find schematic " + schematic.schematicID);
             } else {
-                if (fawe) {
-                    Bukkit.getScheduler().runTaskAsynchronously(IridiumSkyblock.getInstance(),
-                            () -> schematicPaster.paste(file, location, schematic.ignoreAirBlocks, completableFuture));
-                } else {
-                    schematicPaster.paste(file, location, schematic.ignoreAirBlocks, completableFuture);
-                }
+                schematicPaster.paste(file, location, schematic.ignoreAirBlocks, completableFuture);
             }
         });
         return completableFuture;

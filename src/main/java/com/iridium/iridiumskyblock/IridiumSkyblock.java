@@ -112,7 +112,7 @@ public class IridiumSkyblock extends IridiumTeams<Island, User> {
         this.userPlaceholderBuilder = new UserPlaceholderBuilder();
         this.teamChatPlaceholderBuilder = new TeamChatPlaceholderBuilder();
 
-        Bukkit.getScheduler().runTask(this, () -> this.economy = setupEconomy());
+        Bukkit.getGlobalRegionScheduler().run(this, task -> this.economy = setupEconomy());
 
         Bukkit.getServer().getOnlinePlayers().forEach(player -> getIslandManager().sendIslandBorder(player));
 

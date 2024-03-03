@@ -74,12 +74,7 @@ public class FastAsyncWorldEdit implements SchematicPaster {
                                 e.printStackTrace();
                             }
                             cachedClipboardFormat.putIfAbsent(file, format);
-                            Bukkit.getScheduler().runTask(IridiumSkyblock.getInstance(), new Runnable() {
-                                @Override
-                                public void run() {
-                                    completableFuture.complete(null);
-                                }
-                            });
+                            Bukkit.getGlobalRegionScheduler().run(IridiumSkyblock.getInstance(), task -> completableFuture.complete(null));
                         }
                     };
                 };

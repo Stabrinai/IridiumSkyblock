@@ -11,12 +11,12 @@ public class PlayerTeleportListener implements Listener {
 
     @EventHandler
     public void onPlayerTeleport(PlayerTeleportEvent event) {
-        Bukkit.getScheduler().runTask(IridiumSkyblock.getInstance(), () -> {
+        event.getPlayer().getScheduler().run(IridiumSkyblock.getInstance(), task -> {
             Player player = event.getPlayer();
             if(player == null) return;
 
             IridiumSkyblock.getInstance().getTeamManager().sendIslandBorder(player);
-        });
+        }, null);
     }
 
 }

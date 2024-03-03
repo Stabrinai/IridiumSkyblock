@@ -48,7 +48,7 @@ public class BiomeManager {
 
         IridiumSkyblock.getInstance().getCommands().biomeCommand.getCooldownProvider().applyCooldown(player);
 
-        IridiumSkyblock.getInstance().getIslandManager().setIslandBiome(island.get(), biomeOptional.get());
+        IridiumSkyblock.getInstance().getIslandManager().setIslandBiome(player,island.get(), biomeOptional.get());
         IridiumSkyblock.getInstance().getTeamManager().getTeamMembers(island.get()).stream().map(IridiumUser::getPlayer).forEach((teamMember) -> {
             if (teamMember != null) {
                 teamMember.sendMessage(StringUtils.color(IridiumSkyblock.getInstance().getMessages().changedBiome

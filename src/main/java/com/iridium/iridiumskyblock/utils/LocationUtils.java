@@ -4,6 +4,8 @@ import com.iridium.iridiumcore.dependencies.xseries.XMaterial;
 import com.iridium.iridiumcore.multiversion.MultiVersion;
 import com.iridium.iridiumskyblock.IridiumSkyblock;
 import com.iridium.iridiumskyblock.database.Island;
+import org.apache.logging.log4j.Level;
+import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.World;
@@ -11,6 +13,7 @@ import org.bukkit.block.Block;
 
 import javax.annotation.Nullable;
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -39,25 +42,59 @@ public class LocationUtils {
      * @return A safe Location, if none found return null
      */
     @Nullable
-    public static Location getSafeLocation(Location location, Island island) {
-        World world = location.getWorld();
-        if (world == null) return location;
-        if (island == null) return location;
-        if (isSafe(location)) return location;
+    public static CompletableFuture<Location> getSafeLocation(final Location location, Island island){
+        return CompletableFuture.supplyAsync(()->{
+            try {
+                final Location[] resLocation = {location};
+                Bukkit.getRegionScheduler().run(IridiumSkyblock.getInstance(), resLocation[0],(task)->{
+                    World world = location.getWorld();
+                    if (world == null) resLocation[0] = location;
+                    if (island == null) resLocation[0] =  location;
+                    if (isSafe(location)) resLocation[0] =  location;
+                    Location highest = getHighestLocation(location.getBlockX(), location.getBlockZ(), world);
+                    if (isSafe(highest)) resLocation[0] =  highest;
 
-        Location highest = getHighestLocation(location.getBlockX(), location.getBlockZ(), world);
-        if (isSafe(highest)) return highest;
-
-        Location pos1 = island.getPosition1(world);
-        Location pos2 = island.getPosition2(world);
-        for (int x = pos1.getBlockX(); x <= pos2.getBlockX(); x++) {
-            for (int z = pos1.getBlockZ(); z <= pos2.getBlockZ(); z++) {
-                Location newLocation = getHighestLocation(x, z, world);
-                if (isSafe(newLocation)) return newLocation;
+                    Location pos1 = island.getPosition1(world);
+                    Location pos2 = island.getPosition2(world);
+                    for (int x = pos1.getBlockX(); x <= pos2.getBlockX(); x++) {
+                        for (int z = pos1.getBlockZ(); z <= pos2.getBlockZ(); z++) {
+                            Location newLocation = getHighestLocation(x, z, world);
+                            if (isSafe(newLocation)) resLocation[0] =  newLocation;
+                        }
+                    }
+                });
+                return resLocation[0];
+            } catch (Exception e){
+                IridiumSkyblock.getInstance().getLogger().warning(e.toString());
+                return null;
             }
-        }
-        return null;
+        });
     }
+    // public static CompletableFuture<Location> getSafeLocation(Location location, Island island) {
+    //     CompletableFuture<Location> completableFuture = new CompletableFuture<>();
+    //     try {
+    //         World world = location.getWorld();
+    //         if (world == null) completableFuture.complete(location);
+    //         if (island == null) completableFuture.complete(location);
+    //         if (isSafe(location)) completableFuture.complete(location);
+    //         Location highest = getHighestLocation(location.getBlockX(), location.getBlockZ(), world);
+    //         if (isSafe(highest)) completableFuture.complete(highest);
+    //
+    //         Location pos1 = island.getPosition1(world);
+    //         Location pos2 = island.getPosition2(world);
+    //         for (int x = pos1.getBlockX(); x <= pos2.getBlockX(); x++) {
+    //             for (int z = pos1.getBlockZ(); z <= pos2.getBlockZ(); z++) {
+    //                 Location newLocation = getHighestLocation(x, z, world);
+    //                 if (isSafe(newLocation)) completableFuture.complete(newLocation);
+    //             }
+    //         }
+    //         completableFuture.complete(null);
+    //     } catch (Exception e){
+    //         IridiumSkyblock.getInstance().getLogger().warning(e.toString());
+    //         completableFuture.complete(null);
+    //     }
+    //     return completableFuture;
+    // }
 
     /**
      * Gets the highest Location in a world

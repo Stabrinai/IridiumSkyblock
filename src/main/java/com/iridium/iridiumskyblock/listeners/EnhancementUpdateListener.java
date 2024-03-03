@@ -13,7 +13,7 @@ public class EnhancementUpdateListener implements Listener {
     @EventHandler
     public void onEnhancementUpdateEvent(EnhancementUpdateEvent<Island, User> event) {
         if (event.getEnhancement().equals("size")) {
-            Bukkit.getScheduler().runTask(IridiumSkyblock.getInstance(), () ->
+            Bukkit.getGlobalRegionScheduler().run(IridiumSkyblock.getInstance(), task ->
                     IridiumSkyblock.getInstance().getTeamManager().getMembersOnIsland(event.getTeam()).forEach(user -> IridiumSkyblock.getInstance().getTeamManager().sendIslandBorder(user.getPlayer()))
             );
         }

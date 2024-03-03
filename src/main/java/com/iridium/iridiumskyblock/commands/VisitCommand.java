@@ -5,6 +5,7 @@ import com.iridium.iridiumskyblock.IridiumSkyblock;
 import com.iridium.iridiumskyblock.database.Island;
 import com.iridium.iridiumskyblock.database.User;
 import com.iridium.iridiumskyblock.gui.VisitGUI;
+import com.iridium.iridiumskyblock.managers.IslandManager;
 import com.iridium.iridiumteams.IridiumTeams;
 import com.iridium.iridiumteams.commands.Command;
 import org.bukkit.Bukkit;
@@ -41,7 +42,7 @@ public class VisitCommand extends Command<Island, User> {
             ));
             return false;
         }
-        player.teleport(island.get().getHome());
+        player.getScheduler().run(IridiumSkyblock.getInstance(),task -> player.teleportAsync(island.get().getHome()),null);
         return true;
     }
 

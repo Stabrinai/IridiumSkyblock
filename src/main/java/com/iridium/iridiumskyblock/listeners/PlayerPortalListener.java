@@ -55,7 +55,7 @@ public class PlayerPortalListener implements Listener {
                     return;
                 }
                 World world = Objects.equals(event.getFrom().getWorld(), end) ? IridiumSkyblock.getInstance().getTeamManager().getWorld(World.Environment.NORMAL) : end;
-                Location location = LocationUtils.getSafeLocation(island.getCenter(world), island);
+                Location location = LocationUtils.getSafeLocation(island.getCenter(world), island).join();
                 if (location == null) {
                     event.getPlayer().sendMessage(StringUtils.color(IridiumSkyblock.getInstance().getMessages().noSafeLocation
                             .replace("%prefix%", IridiumSkyblock.getInstance().getConfiguration().prefix)
