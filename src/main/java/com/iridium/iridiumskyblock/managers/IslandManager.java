@@ -103,7 +103,7 @@ public class IslandManager extends TeamManager<Island, User> {
             Location pos1 = island.getPosition1(world);
             Location pos2 = island.getPosition2(world);
             Bukkit.getRegionScheduler().run(IridiumSkyblock.getInstance(), island.getCenter(world), task ->
-                    biome.setBiome(pos1, pos2).thenRun(() -> {
+                    biome.setBiome(IridiumSkyblock.getInstance(), pos1, pos2).thenRun(() -> {
                 for (Chunk chunk : chunks) {
                     player.getScheduler().run(IridiumSkyblock.getInstance(),task1 -> {
                         player.getWorld().refreshChunk(chunk.getX(), chunk.getZ());
