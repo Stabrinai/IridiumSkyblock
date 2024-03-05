@@ -57,42 +57,6 @@ public class IslandManager extends TeamManager<Island, User> {
         super(IridiumSkyblock.getInstance());
     }
 
-    public void createWorld(World.Environment environment, String name) {
-        if (!IridiumSkyblock.getInstance().getConfiguration().enabledWorlds.getOrDefault(environment, true)) return;
-        Bukkit.getGlobalRegionScheduler().run(IridiumSkyblock.getInstance(),task -> {
-        WorldCreator worldCreator = new WorldCreator(name)
-                .generator(IridiumSkyblock.getInstance().getDefaultWorldGenerator(name, null))
-                .environment(environment);
-        World world = Bukkit.createWorld(worldCreator);
-        if (world != null) {
-            world.setSpawnLocation(0, 62, 0);
-            world.setAutoSave(true);
-        }
-
-        if (world != null && world.getEnvironment() == World.Environment.THE_END) {
-
-            try {
-                File file = new File(worldCreator.name() + File.separator + "level.dat");
-                NBTFile worldFile = new NBTFile(file);
-
-                NBTCompound compound = worldFile.getOrCreateCompound("Data").getOrCreateCompound("DragonFight");
-
-                compound.setBoolean("PreviouslyKilled", true);
-                compound.setBoolean("DragonKilled", true);
-                compound.setBoolean("NeedsStateScanning", false);
-
-                worldFile.save();
-            } catch (Exception exception) {
-                exception.printStackTrace();
-                IridiumSkyblock.getInstance().getLogger().warning("Failed to delete dragon from world");
-            }
-
-            // Note this world is already created, we are just loading it here
-            worldCreator.keepSpawnLoaded(TriState.TRUE);
-        }
-        });
-    }
-
     public void setIslandBiome(@NotNull Player player,@NotNull Island island, @NotNull XBiome biome) {
         World.Environment dimension = biome.getEnvironment();
         World world = getWorld(dimension);
@@ -266,7 +230,7 @@ public class IslandManager extends TeamManager<Island, User> {
         if (world == null) {
             completableFuture.complete(null);
         } else {
-            Bukkit.getGlobalRegionScheduler().run(IridiumSkyblock.getInstance(), task -> clearEntities(island, world, completableFuture));
+            Bukkit.getRegionScheduler().run(IridiumSkyblock.getInstance(), island.getCenter(world), task -> clearEntities(island, world, completableFuture));
         }
         return completableFuture;
     }
@@ -647,7 +611,7 @@ public class IslandManager extends TeamManager<Island, User> {
             return null;
         switch (environment) {
             case NORMAL:
-                return IridiumSkyblock.getInstance().getConfiguration().worldName;
+                return IridiumSkyblock.getInstance().getConfiguration().worldName+ "_overworld";
             case NETHER:
                 return IridiumSkyblock.getInstance().getConfiguration().worldName + "_nether";
             case THE_END:
@@ -697,20 +661,8 @@ public class IslandManager extends TeamManager<Island, User> {
 
     @Override
     public boolean teleport(Player player, Location location, Island team) {
-        AtomicBoolean res1 = new AtomicBoolean();
-        Objects.requireNonNull(LocationUtils.getSafeLocation(location, team)).thenAccept(res->{
-            if (res == null) {
-                player.sendMessage(StringUtils.color(IridiumSkyblock.getInstance().getMessages().noSafeLocation
-                        .replace("%prefix%", IridiumSkyblock.getInstance().getConfiguration().prefix)
-                ));
-                res1.set(false);
-            }
-            player.setFallDistance(0.0F);
-            PaperLib.teleportAsync(player, res);
-            res1.set(true);
-        }).join();
-        return res1.get();
-        // Location safeLocation = LocationUtils.getSafeLocation(location, team).join();
+        Bukkit.getRegionScheduler().run(IridiumSkyblock.getInstance(), location, task-> LocationUtils.tpToSafeLocation(player, location, team));
+        return true;
     }
 
     @Override

@@ -1,5 +1,6 @@
 package com.iridium.iridiumskyblock.utils;
 
+import com.iridium.iridiumcore.dependencies.paperlib.PaperLib;
 import com.iridium.iridiumcore.dependencies.xseries.XMaterial;
 import com.iridium.iridiumcore.multiversion.MultiVersion;
 import com.iridium.iridiumskyblock.IridiumSkyblock;
@@ -10,10 +11,13 @@ import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.World;
 import org.bukkit.block.Block;
+import org.bukkit.entity.Player;
 
 import javax.annotation.Nullable;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.concurrent.locks.ReentrantLock;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -34,41 +38,33 @@ public class LocationUtils {
         return multiVersion.isPassable(block) && multiVersion.isPassable(above) && !multiVersion.isPassable(below) && !unsafeBlocks.contains(below.getType()) && !unsafeBlocks.contains(block.getType()) && !unsafeBlocks.contains(above.getType());
     }
 
-    /**
-     * Gets a safe location on the island
-     *
-     * @param location The location we want to teleport
-     * @param island   The island we are inside
-     * @return A safe Location, if none found return null
-     */
     @Nullable
-    public static CompletableFuture<Location> getSafeLocation(final Location location, Island island){
-        return CompletableFuture.supplyAsync(()->{
-            try {
-                final Location[] resLocation = {location};
-                Bukkit.getRegionScheduler().run(IridiumSkyblock.getInstance(), resLocation[0],(task)->{
-                    World world = location.getWorld();
-                    if (world == null) resLocation[0] = location;
-                    if (island == null) resLocation[0] =  location;
-                    if (isSafe(location)) resLocation[0] =  location;
-                    Location highest = getHighestLocation(location.getBlockX(), location.getBlockZ(), world);
-                    if (isSafe(highest)) resLocation[0] =  highest;
+    public static void tpToSafeLocation(Player player, final Location location, Island island){
+        CompletableFuture<Location> completableFuture = new CompletableFuture<>();
+        try {
+            World world = location.getWorld();
+            if (world == null) completableFuture.complete(location);
+            if (island == null) completableFuture.complete(location);
+            if (isSafe(location)) completableFuture.complete(location);
+            Location highest = getHighestLocation(location.getBlockX(), location.getBlockZ(), world);
+            if (isSafe(highest)) completableFuture.complete(highest);
 
-                    Location pos1 = island.getPosition1(world);
-                    Location pos2 = island.getPosition2(world);
-                    for (int x = pos1.getBlockX(); x <= pos2.getBlockX(); x++) {
-                        for (int z = pos1.getBlockZ(); z <= pos2.getBlockZ(); z++) {
-                            Location newLocation = getHighestLocation(x, z, world);
-                            if (isSafe(newLocation)) resLocation[0] =  newLocation;
-                        }
-                    }
-                });
-                return resLocation[0];
-            } catch (Exception e){
-                IridiumSkyblock.getInstance().getLogger().warning(e.toString());
-                return null;
+            Location pos1 = island.getPosition1(world);
+            Location pos2 = island.getPosition2(world);
+            for (int x = pos1.getBlockX(); x <= pos2.getBlockX(); x++) {
+                for (int z = pos1.getBlockZ(); z <= pos2.getBlockZ(); z++) {
+                    Location newLocation = getHighestLocation(x, z, world);
+                    if (isSafe(newLocation)) completableFuture.complete(newLocation);
+                }
             }
-        });
+
+            player.setFallDistance(0.0f);
+            PaperLib.teleportAsync(player, completableFuture.get());
+
+        } catch (Exception e){
+            IridiumSkyblock.getInstance().getLogger().warning(e.toString());
+            completableFuture.complete(null);
+        }
     }
     // public static CompletableFuture<Location> getSafeLocation(Location location, Island island) {
     //     CompletableFuture<Location> completableFuture = new CompletableFuture<>();
