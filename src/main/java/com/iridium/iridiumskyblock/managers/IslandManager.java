@@ -263,7 +263,6 @@ public class IslandManager extends TeamManager<Island, User> {
         if (world == null) return;
         Location pos1 = island.getPosition1(world);
         Location pos2 = island.getPosition2(world);
-        Bukkit.getLogger().info("开始循环");
         for (int x = pos1.getBlockX(); x <= pos2.getBlockX(); x++) {
             for (int z = pos1.getBlockZ(); z <= pos2.getBlockZ(); z++) {
                 Block block = world.getBlockAt(x, y, z);
