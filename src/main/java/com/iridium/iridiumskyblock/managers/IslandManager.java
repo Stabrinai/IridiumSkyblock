@@ -1,9 +1,7 @@
 package com.iridium.iridiumskyblock.managers;
 
 import com.iridium.iridiumcore.dependencies.nbtapi.NBTCompound;
-import com.iridium.iridiumcore.dependencies.nbtapi.NBTFile;
 import com.iridium.iridiumcore.dependencies.nbtapi.NBTItem;
-import com.iridium.iridiumcore.dependencies.paperlib.PaperLib;
 import com.iridium.iridiumcore.dependencies.xseries.XMaterial;
 import com.iridium.iridiumcore.dependencies.xseries.XBiome;
 import com.iridium.iridiumcore.utils.ItemStackUtils;
@@ -25,7 +23,6 @@ import com.iridium.iridiumteams.managers.TeamManager;
 import com.iridium.iridiumteams.missions.Mission;
 import com.iridium.iridiumteams.missions.MissionData;
 import com.iridium.iridiumteams.missions.MissionType;
-import net.kyori.adventure.util.TriState;
 import org.bukkit.*;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockState;
@@ -40,13 +37,9 @@ import org.bukkit.inventory.ItemStack;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import java.io.File;
-import java.io.IOException;
 import java.time.LocalDateTime;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -262,20 +255,19 @@ public class IslandManager extends TeamManager<Island, User> {
         if (world == null) {
             completableFuture.complete(null);
         } else {
-            Bukkit.getRegionScheduler().run(IridiumSkyblock.getInstance(), island.getCenter(world), task -> deleteIslandBlocks(island, world, world.getMaxHeight(), completableFuture, 0));
+            Bukkit.getRegionScheduler().run(IridiumSkyblock.getInstance(), island.getCenter(world), task -> deleteIslandBlocks(island, world, world.getMaxHeight(), completableFuture));
         }
         return completableFuture;
     }
-
-    private void deleteIslandBlocks(Island island, World world, int y, CompletableFuture<Void> completableFuture, int delay) {
+    private void deleteIslandBlocks(Island island, World world, int y, CompletableFuture<Void> completableFuture) {
         if (world == null) return;
         Location pos1 = island.getPosition1(world);
         Location pos2 = island.getPosition2(world);
-
+        Bukkit.getLogger().info("开始循环");
         for (int x = pos1.getBlockX(); x <= pos2.getBlockX(); x++) {
             for (int z = pos1.getBlockZ(); z <= pos2.getBlockZ(); z++) {
                 Block block = world.getBlockAt(x, y, z);
-                if (block.getType() != Material.AIR) {
+                if (!block.getType().isAir()) {
                     if (block.getState() instanceof InventoryHolder) {
                         ((InventoryHolder) block.getState()).getInventory().clear();
                     }
@@ -287,11 +279,7 @@ public class IslandManager extends TeamManager<Island, User> {
         if (y <= LocationUtils.getMinHeight(world)) {
             completableFuture.complete(null);
         } else {
-            if (delay < 1) {
-                deleteIslandBlocks(island, world, y - 1, completableFuture, delay);
-            } else {
-                Bukkit.getRegionScheduler().runDelayed(IridiumSkyblock.getInstance(), island.getCenter(world), task -> deleteIslandBlocks(island, world, y - 1, completableFuture, delay), delay);
-            }
+            deleteIslandBlocks(island, world, y - 1, completableFuture);
         }
     }
 
@@ -444,21 +432,25 @@ public class IslandManager extends TeamManager<Island, User> {
         return CompletableFuture.runAsync(() -> {
             List<Chunk> chunks = getIslandChunks(island).join();
             for (Chunk chunk : chunks) {
-                ChunkSnapshot chunkSnapshot = chunk.getChunkSnapshot(true, false, false);
-                for (int x = 0; x < 16; x++) {
-                    for (int z = 0; z < 16; z++) {
-                        final int maxy = chunkSnapshot.getHighestBlockYAt(x, z);
-                        for (int y = 0; y <= maxy; y++) {
-                            if (island.isInIsland(x + (chunkSnapshot.getX() * 16), z + (chunkSnapshot.getZ() * 16))) {
-                                XMaterial material = XMaterial.matchXMaterial(chunkSnapshot.getBlockType(x, y, z));
-                                teamBlocks.put(material, teamBlocks.getOrDefault(material, 0) + 1);
+                Bukkit.getRegionScheduler().run(IridiumSkyblock.getInstance(), island.getCenter(chunk.getWorld()), task -> {
+                    for (int x = 0; x < 16; x++) {
+                        for (int z = 0; z < 16; z++) {
+                            final int maxy = chunk.getWorld().getHighestBlockYAt(x, z);
+                            for (int y = 0; y <= maxy; y++) {
+                                if (island.isInIsland(x + (chunk.getX() * 16), z + (chunk.getZ() * 16))) {
+                                    XMaterial material = XMaterial.matchXMaterial(chunk.getBlock(x, y, z).getType());
+                                    if (!material.equals(XMaterial.AIR))
+                                        teamBlocks.put(material, teamBlocks.getOrDefault(material, 0) + 1);
+                                }
                             }
                         }
                     }
-                }
-                getSpawners(chunk, island).join().forEach(creatureSpawner ->
-                        teamSpawners.put(creatureSpawner.getSpawnedType(), teamSpawners.getOrDefault(creatureSpawner.getSpawnedType(), 0) + 1)
-                );
+                    getSpawners(chunk, island).join().forEach(creatureSpawner ->
+                            teamSpawners.put(creatureSpawner.getSpawnedType(), teamSpawners.getOrDefault(creatureSpawner.getSpawnedType(), 0) + 1)
+                    );
+                });
+
+
             }
         }).thenRun(() -> Bukkit.getGlobalRegionScheduler().run(IridiumSkyblock.getInstance(), task -> {
             List<TeamBlock> blocks = IridiumSkyblock.getInstance().getDatabaseManager().getTeamBlockTableManager().getEntries(island);
@@ -474,15 +466,13 @@ public class IslandManager extends TeamManager<Island, User> {
 
     public CompletableFuture<List<CreatureSpawner>> getSpawners(Chunk chunk, Island island) {
         CompletableFuture<List<CreatureSpawner>> completableFuture = new CompletableFuture<>();
-        Bukkit.getGlobalRegionScheduler().run(IridiumSkyblock.getInstance(), task -> {
-            List<CreatureSpawner> creatureSpawners = new ArrayList<>();
-            for (BlockState blockState : chunk.getTileEntities()) {
-                if (!island.isInIsland(blockState.getLocation())) continue;
-                if (!(blockState instanceof CreatureSpawner)) continue;
-                creatureSpawners.add((CreatureSpawner) blockState);
-            }
-            completableFuture.complete(creatureSpawners);
-        });
+        List<CreatureSpawner> creatureSpawners = new ArrayList<>();
+        for (BlockState blockState : chunk.getTileEntities()) {
+            if (!island.isInIsland(blockState.getLocation())) continue;
+            if (!(blockState instanceof CreatureSpawner)) continue;
+            creatureSpawners.add((CreatureSpawner) blockState);
+        }
+        completableFuture.complete(creatureSpawners);
         return completableFuture;
     }
 
@@ -661,7 +651,7 @@ public class IslandManager extends TeamManager<Island, User> {
 
     @Override
     public boolean teleport(Player player, Location location, Island team) {
-        Bukkit.getRegionScheduler().run(IridiumSkyblock.getInstance(), location, task-> LocationUtils.tpToSafeLocation(player, location, team));
+        LocationUtils.tpToSafeLocation(player, location, team);
         return true;
     }
 

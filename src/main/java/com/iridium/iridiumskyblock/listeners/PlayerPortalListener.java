@@ -31,7 +31,6 @@ public class PlayerPortalListener implements Listener {
                             .replace("%level%", String.valueOf(IridiumSkyblock.getInstance().getConfiguration().netherUnlockLevel))
                             .replace("%prefix%", IridiumSkyblock.getInstance().getConfiguration().prefix)
                     ));
-                    event.setCancelled(true);
                     return;
                 }
                 World nether = IridiumSkyblock.getInstance().getIslandManager().getWorld(World.Environment.NETHER);
@@ -39,18 +38,16 @@ public class PlayerPortalListener implements Listener {
                     event.getPlayer().sendMessage(StringUtils.color(IridiumSkyblock.getInstance().getMessages().netherIslandsDisabled
                             .replace("%prefix%", IridiumSkyblock.getInstance().getConfiguration().prefix)
                     ));
-                    event.setCancelled(true);
                     return;
                 }
                 World world = Objects.equals(event.getFrom().getWorld(), nether) ? IridiumSkyblock.getInstance().getTeamManager().getWorld(World.Environment.NORMAL) : nether;
-                event.setTo(island.getCenter(world));
+                LocationUtils.tpToSafeLocation(event.getPlayer(), island.getCenter(world), island);
             } else {
                 if (island.getLevel() < IridiumSkyblock.getInstance().getConfiguration().endUnlockLevel) {
                     event.getPlayer().sendMessage(StringUtils.color(IridiumSkyblock.getInstance().getMessages().endLocked
                             .replace("%level%", String.valueOf(IridiumSkyblock.getInstance().getConfiguration().endUnlockLevel))
                             .replace("%prefix%", IridiumSkyblock.getInstance().getConfiguration().prefix)
                     ));
-                    event.setCancelled(true);
                     return;
                 }
                 World end = IridiumSkyblock.getInstance().getIslandManager().getWorld(World.Environment.THE_END);
@@ -58,12 +55,10 @@ public class PlayerPortalListener implements Listener {
                     event.getPlayer().sendMessage(StringUtils.color(IridiumSkyblock.getInstance().getMessages().endIslandsDisabled
                             .replace("%prefix%", IridiumSkyblock.getInstance().getConfiguration().prefix)
                     ));
-                    event.setCancelled(true);
                     return;
                 }
                 World world = Objects.equals(event.getFrom().getWorld(), end) ? IridiumSkyblock.getInstance().getTeamManager().getWorld(World.Environment.NORMAL) : end;
                 if(XMaterial.supports(15)) {
-                    event.setCancelled(true);
                     return;
                 }
                 LocationUtils.tpToSafeLocation(event.getPlayer(), island.getCenter(world), island);
