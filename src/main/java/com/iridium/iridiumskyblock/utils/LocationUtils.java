@@ -15,8 +15,6 @@ import org.bukkit.entity.Player;
 
 import javax.annotation.Nullable;
 import java.util.List;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
